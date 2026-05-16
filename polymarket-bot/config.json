@@ -1,0 +1,17 @@
+{
+  "symbols": ["BTCUSDT", "ETHUSDT"],
+  "starting_balance_usd": 5.0,
+  "goal_balance_usd": 1000.0,
+  "min_stake_usd": 1.0,
+  "max_stake_usd": 5.0,
+  "min_confidence": 35,
+  "high_confidence": 60,
+  "scan_interval_minutes": 60,
+  "primary_timeframe": "4h",
+  "bias_timeframe": "1d",
+  "timing_timeframe": "1h",
+  "polymarket_payout_multiplier": 1.0,
+  "data_dir": "data",
+  "log_dir": "logs",
+  "auto_settle": true
+}

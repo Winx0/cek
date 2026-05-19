@@ -44,7 +44,7 @@ from typing import Dict, List, Optional, Set, Tuple
 # ---------------------------------------------------------------------------
 
 # Target years to filter
-DEFAULT_YEARS = [2020]
+DEFAULT_YEARS = [2019, 2020, 2021]
 
 # Crypto-related URL patterns to search for
 CRYPTO_URL_PATTERNS = [

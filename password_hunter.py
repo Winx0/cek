@@ -68,7 +68,7 @@ if platform.system() == "Windows":
 # Configuration
 # ---------------------------------------------------------------------------
 
-TARGET_EMAIL = "etngrupid@gmail.com"
+TARGET_EMAIL = "ernisyach@yahoo.com"
 
 # URLs to prioritize
 PRIORITY_URLS = [
@@ -93,6 +93,7 @@ PRIORITY_URLS = [
 
 # Also search for these emails across all saved logins
 TARGET_EMAILS = [
+    "ernisyach@yahoo.com",
     "etngrupid@gmail.com",
     "lahanbasa@gmail.com",
     "ir.pangkubaranisyah@gmail.com",

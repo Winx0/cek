@@ -1,70 +1,58 @@
 #!/usr/bin/env python3
-"""Scan HDD partitions (D, E, F) for files from 2020 related to crypto/wallet.
+"""Scan HDD (D, E, F) for WhatsApp backup data from 2020.
 
-Focuses on:
-- Files modified in 2020
-- Contains crypto keywords (blockchain, wallet, bitcoin, seed, recovery, etc.)
-- File types: txt, json, dat, bak, csv, key, aes, pdf, doc, docx, screenshot
-- Also checks for wallet.aes.json backup files from Blockchain.com
+Searches for:
+- WhatsApp database backups (msgstore-*.db.crypt12/crypt14)
+- WhatsApp media folders
+- WhatsApp exported chats (.txt)
+- Google Drive WhatsApp backup references
+- Any file related to WhatsApp from 2019-2021
 """
 
 import os
 import sys
-import time
 from datetime import datetime
 
 # Config
-SEARCH_DRIVES = ["D:\\", "E:\\", "F:\\"]
-TARGET_YEAR = 2020
+SEARCH_DRIVES = ["D:\\", "E:\\", "F:\\", "C:\\Users\\ERWIN SYAH ST"]
 
-# File extensions to check content
-TEXT_EXTENSIONS = {
-    ".txt", ".json", ".csv", ".log", ".bak", ".backup",
-    ".key", ".dat", ".aes", ".cfg", ".conf", ".ini",
-    ".md", ".note", ".notes", ".rtf",
-}
-
-# File extensions of interest (by name/date only)
-ALL_EXTENSIONS = {
-    ".txt", ".json", ".csv", ".log", ".bak", ".backup",
-    ".key", ".dat", ".aes", ".cfg", ".conf", ".ini",
-    ".md", ".note", ".notes", ".rtf", ".pdf", ".doc",
-    ".docx", ".xls", ".xlsx", ".png", ".jpg", ".jpeg",
-    ".wallet", ".kdbx",
-}
-
-# Keywords to search in filenames
-FILENAME_KEYWORDS = [
-    "wallet", "bitcoin", "btc", "blockchain", "seed",
-    "recovery", "backup", "crypto", "mnemonic", "private",
-    "key", "passphrase", "freebitco", "coinbase", "indodax",
-    "electrum", "address",
+# WhatsApp-related keywords in filenames
+WA_FILENAME_KEYWORDS = [
+    "whatsapp",
+    "msgstore",
+    "wa_",
+    "wabusiness",
+    "chat_",
+    "whatsapp chat",
+    "exported chat",
 ]
 
-# Keywords to search inside text files
-CONTENT_KEYWORDS = [
-    "wallet", "bitcoin", "btc", "blockchain", "seed",
-    "recovery phrase", "mnemonic", "private key",
-    "1B8hgFxNK7ac2k5EtrAanxQPFcnfHLMcko",
-    "ernisyach", "freebitco",
-    "xprv", "xpub",
-    "abandon",  # first BIP39 word (common in seed backups)
-]
+# WhatsApp-related extensions
+WA_EXTENSIONS = {
+    ".crypt12", ".crypt14", ".crypt15", ".crypt",
+    ".db", ".db.crypt12", ".db.crypt14",
+}
+
+# WhatsApp folder names
+WA_FOLDER_NAMES = {
+    "whatsapp",
+    "whatsapp images",
+    "whatsapp documents",
+    "whatsapp databases",
+    "whatsapp media",
+    "whatsapp backup",
+}
 
 # Skip these folders
 SKIP_DIRS = {
     "Windows", "Program Files", "Program Files (x86)",
     "$Recycle.Bin", "System Volume Information",
     "node_modules", ".git", "__pycache__",
-    "AppData",
 }
 
-# Max file size for content scan (2MB)
-MAX_CONTENT_SIZE = 2 * 1024 * 1024
 
-
-def is_year_2020(timestamp):
-    """Check if a timestamp is from year 2020 (or late 2019 / early 2021)."""
+def is_2020_era(timestamp):
+    """Check if timestamp is from 2019-2021."""
     try:
         dt = datetime.fromtimestamp(timestamp)
         return dt.year in [2019, 2020, 2021]
@@ -72,144 +60,131 @@ def is_year_2020(timestamp):
         return False
 
 
-def check_file_content(filepath, size):
-    """Check if file contains crypto-related keywords."""
-    if size > MAX_CONTENT_SIZE:
-        return []
-    try:
-        with open(filepath, "r", encoding="utf-8", errors="ignore") as f:
-            content = f.read().lower()
-        matches = []
-        for kw in CONTENT_KEYWORDS:
-            if kw.lower() in content:
-                matches.append(kw)
-        return matches
-    except Exception:
-        return []
-
-
 def main():
     print()
     print("=" * 65)
-    print("  SCAN HDD 2020 — Cari file crypto/wallet dari tahun 2020")
-    print("  Drives: D:\\, E:\\, F\\")
+    print("  SCAN HDD — WhatsApp Backup Data 2020")
+    print("  Drives: C (User), D, E, F")
     print("  Target: 2019-2020-2021")
     print("=" * 65)
     print()
 
-    results_filename = []
-    results_content = []
+    results = []
+    wa_folders = []
     files_scanned = 0
-    errors = 0
 
     for drive in SEARCH_DRIVES:
         if not os.path.exists(drive):
-            print(f"  Drive {drive} tidak ditemukan, skip.")
+            print(f"  {drive} tidak ditemukan, skip.")
             continue
 
         print(f"  Scanning {drive} ...")
 
         try:
             for root, dirs, files in os.walk(drive):
-                # Skip system/irrelevant dirs
+                # Skip system dirs
                 dirs[:] = [d for d in dirs if d not in SKIP_DIRS]
+
+                # Check if current folder is WhatsApp-related
+                folder_name = os.path.basename(root).lower()
+                if folder_name in WA_FOLDER_NAMES:
+                    wa_folders.append(root)
 
                 for f in files:
                     filepath = os.path.join(root, f)
                     files_scanned += 1
 
-                    if files_scanned % 50000 == 0:
-                        print(f"    ... {files_scanned:,} files scanned, "
-                              f"{len(results_filename) + len(results_content)} findings ...")
-
-                    try:
-                        stat = os.stat(filepath)
-                    except (OSError, PermissionError):
-                        errors += 1
-                        continue
-
-                    mtime = stat.st_mtime
-                    size = stat.st_size
-
-                    # Only files from 2020 era
-                    if not is_year_2020(mtime):
-                        continue
+                    if files_scanned % 100000 == 0:
+                        print(f"    ... {files_scanned:,} files scanned ...")
 
                     f_lower = f.lower()
-                    _, ext = os.path.splitext(f_lower)
 
-                    # Check 1: Filename contains crypto keywords
-                    name_match = [kw for kw in FILENAME_KEYWORDS if kw in f_lower]
-                    if name_match:
+                    # Check if filename is WhatsApp-related
+                    is_wa = any(kw in f_lower for kw in WA_FILENAME_KEYWORDS)
+
+                    # Check extension
+                    if not is_wa:
+                        for ext in WA_EXTENSIONS:
+                            if f_lower.endswith(ext):
+                                is_wa = True
+                                break
+
+                    # Check if in WhatsApp folder
+                    if not is_wa:
+                        if "whatsapp" in root.lower():
+                            is_wa = True
+
+                    if not is_wa:
+                        continue
+
+                    # Get file info
+                    try:
+                        stat = os.stat(filepath)
+                        size = stat.st_size
+                        mtime = stat.st_mtime
                         dt = datetime.fromtimestamp(mtime)
-                        results_filename.append({
+                    except (OSError, PermissionError):
+                        continue
+
+                    # Filter: only 2020 era OR WhatsApp database files (any year)
+                    is_database = "msgstore" in f_lower or f_lower.endswith((".crypt12", ".crypt14", ".crypt15"))
+                    is_2020 = is_2020_era(mtime)
+
+                    if is_2020 or is_database:
+                        results.append({
                             "path": filepath,
                             "size": size,
-                            "modified": dt.strftime("%Y-%m-%d"),
-                            "keywords": name_match,
+                            "modified": dt.strftime("%Y-%m-%d %H:%M"),
+                            "type": "database" if is_database else "other",
                         })
 
-                    # Check 2: Content scan for text files from 2020
-                    if ext in TEXT_EXTENSIONS and size > 10 and size < MAX_CONTENT_SIZE:
-                        content_matches = check_file_content(filepath, size)
-                        if content_matches:
-                            dt = datetime.fromtimestamp(mtime)
-                            results_content.append({
-                                "path": filepath,
-                                "size": size,
-                                "modified": dt.strftime("%Y-%m-%d"),
-                                "keywords": content_matches,
-                            })
-
-        except (PermissionError, OSError) as e:
-            errors += 1
+        except (PermissionError, OSError):
+            pass
 
     # Print results
     print()
     print("=" * 65)
-    print(f"  SCAN COMPLETE")
-    print(f"  Files scanned: {files_scanned:,}")
-    print(f"  Errors: {errors}")
+    print(f"  SCAN COMPLETE — {files_scanned:,} files scanned")
     print("=" * 65)
     print()
 
-    # Filename matches
-    if results_filename:
-        print(f"  [FILENAME MATCH] {len(results_filename)} files with crypto-related names (2020):")
+    # WhatsApp folders found
+    if wa_folders:
+        print(f"  [WHATSAPP FOLDERS] {len(wa_folders)} found:")
         print("  " + "-" * 55)
-        for r in sorted(results_filename, key=lambda x: x["modified"]):
-            print(f"    [{r['modified']}] {r['path']}")
-            print(f"              Size: {r['size']} bytes | Keywords: {r['keywords']}")
+        for folder in wa_folders:
+            print(f"    {folder}")
         print()
 
-    # Content matches
-    if results_content:
-        print(f"  [CONTENT MATCH] {len(results_content)} files containing crypto data (2020):")
+    # Database files (highest priority)
+    databases = [r for r in results if r["type"] == "database"]
+    others = [r for r in results if r["type"] == "other"]
+
+    if databases:
+        print(f"  [DATABASE FILES] {len(databases)} WhatsApp DB backups:")
         print("  " + "-" * 55)
-        for r in sorted(results_content, key=lambda x: x["modified"]):
+        for r in sorted(databases, key=lambda x: x["modified"]):
             print(f"    [{r['modified']}] {r['path']}")
-            print(f"              Size: {r['size']} bytes | Found: {r['keywords']}")
+            print(f"              Size: {r['size']:,} bytes")
         print()
 
-    # Special: check if target address found anywhere
-    target_found = [r for r in results_content if "1B8hgFxNK7ac2k5EtrAanxQPFcnfHLMcko" in r["keywords"]]
-    if target_found:
-        print("  " + "!" * 55)
-        print("  !!! YOUR BTC ADDRESS FOUND IN FILES !!!")
-        print("  " + "!" * 55)
-        for r in target_found:
-            print(f"    FILE: {r['path']}")
-            print(f"    Date: {r['modified']}")
-        print("  " + "!" * 55)
+    if others:
+        print(f"  [OTHER WA FILES] {len(others)} files (2020 era):")
+        print("  " + "-" * 55)
+        for r in sorted(others, key=lambda x: x["modified"])[:50]:
+            print(f"    [{r['modified']}] {r['path']}")
+            print(f"              Size: {r['size']:,} bytes")
+        if len(others) > 50:
+            print(f"    ... dan {len(others) - 50} file lainnya")
         print()
 
-    if not results_filename and not results_content:
-        print("  Tidak ditemukan file crypto dari tahun 2020 di drive D, E, F.")
+    if not results and not wa_folders:
+        print("  Tidak ditemukan data WhatsApp di drive D, E, F.")
         print()
         print("  Kemungkinan:")
-        print("  - File wallet backup sudah terhapus")
-        print("  - Data crypto disimpan di folder lain")
-        print("  - Wallet hanya diakses via browser (tidak ada file lokal)")
+        print("  - WhatsApp backup ada di Google Drive (bukan lokal)")
+        print("  - Data WhatsApp ada di HP langsung")
+        print("  - Folder WhatsApp sudah dihapus")
 
     print()
 
